@@ -9,6 +9,28 @@ import http from "http";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const distPath = join(__dirname, "../dist");
 
+function openInspectorGui(url, guiMode) {
+  if (guiMode === "macos-app") {
+    if (process.platform === "darwin") {
+      console.log("🍎 Opening macOS app window...");
+      open.openApp("Safari", { arguments: [url] }).catch(() => {
+        console.warn(
+          "⚠️  Failed to open macOS app window. Opening browser instead.",
+        );
+        console.log(`🌐 Opening browser...`);
+        open(url);
+      });
+      return;
+    }
+    console.warn(
+      "⚠️  --gui-mode macos-app is only supported on macOS. Opening browser instead.",
+    );
+  }
+
+  console.log(`🌐 Opening browser...`);
+  open(url);
+}
+
 const server = http.createServer((request, response) => {
   const handlerOptions = {
     public: distPath,
@@ -46,8 +68,7 @@ server.on("listening", () => {
   const url = process.env.INSPECTOR_URL || `http://${host}:${port}`;
   console.log(`\n🚀 MCP Inspector is up and running at:\n   ${url}\n`);
   if (process.env.MCP_AUTO_OPEN_ENABLED !== "false") {
-    console.log(`🌐 Opening browser...`);
-    open(url);
+    openInspectorGui(url, process.env.MCP_GUI_MODE || "browser");
   }
 });
 server.on("error", (err) => {

@@ -29,6 +29,14 @@ npx @modelcontextprotocol/inspector
 
 The server will start up and the UI will be accessible at `http://localhost:6274`.
 
+On macOS, you can request a faster app-window launch path (Safari app window) with:
+
+```bash
+npx @modelcontextprotocol/inspector --gui-mode macos-app
+```
+
+Supported values are `browser` (default) and `macos-app` (macOS only).
+
 ### Docker Container
 
 You can also start it in a Docker container with the following command:

@@ -14,6 +14,7 @@ type Args = {
   args: string[];
   envArgs: Record<string, string>;
   cli: boolean;
+  guiMode: GuiMode;
   transport?: "stdio" | "sse" | "streamable-http";
   serverUrl?: string;
   headers?: Record<string, string>;
@@ -24,6 +25,7 @@ type CliOptions = {
   config?: string;
   server?: string;
   cli?: boolean;
+  guiMode?: string;
   transport?: string;
   serverUrl?: string;
   header?: Record<string, string>;
@@ -41,6 +43,9 @@ type ServerConfig =
       url: string;
       note?: string;
     };
+
+const GUI_MODES = ["browser", "macos-app"] as const;
+type GuiMode = (typeof GUI_MODES)[number];
 
 function handleError(error: unknown): never {
   let message: string;
@@ -90,6 +95,10 @@ async function runWebClient(args: Args): Promise<void> {
   // Pass transport type if specified
   if (args.transport) {
     startArgs.push("--transport", args.transport);
+  }
+
+  if (args.guiMode) {
+    startArgs.push("--gui-mode", args.guiMode);
   }
 
   // Pass server URL if specified
@@ -244,6 +253,14 @@ function parseHeaderPair(
 
 function parseArgs(): Args {
   const program = new Command();
+  const parseGuiMode = (value: string): GuiMode => {
+    if (GUI_MODES.includes(value as GuiMode)) {
+      return value as GuiMode;
+    }
+    throw new Error(
+      `Invalid GUI mode: ${value}. Use "browser" or "macos-app".`,
+    );
+  };
 
   const argSeparatorIndex = process.argv.indexOf("--");
   let preArgs = process.argv;
@@ -267,6 +284,12 @@ function parseArgs(): Args {
     .option("--config <path>", "config file path")
     .option("--server <n>", "server name from config file")
     .option("--cli", "enable CLI mode")
+    .option(
+      "--gui-mode <mode>",
+      "GUI mode (browser, macos-app)",
+      parseGuiMode,
+      "browser",
+    )
     .option("--transport <type>", "transport type (stdio, sse, http)")
     .option("--server-url <url>", "server URL for SSE/HTTP transport")
     .option(
@@ -326,6 +349,7 @@ function parseArgs(): Args {
         args: [...(config.args || []), ...finalArgs],
         envArgs: { ...(config.env || {}), ...(options.e || {}) },
         cli: options.cli || false,
+        guiMode: (options.guiMode as GuiMode) || "browser",
         transport: "stdio",
         headers: options.header,
       };
@@ -335,6 +359,7 @@ function parseArgs(): Args {
         args: finalArgs,
         envArgs: options.e || {},
         cli: options.cli || false,
+        guiMode: (options.guiMode as GuiMode) || "browser",
         transport: config.type,
         serverUrl: config.url,
         headers: options.header,
@@ -346,6 +371,7 @@ function parseArgs(): Args {
         args: [...((config as any).args || []), ...finalArgs],
         envArgs: { ...((config as any).env || {}), ...(options.e || {}) },
         cli: options.cli || false,
+        guiMode: (options.guiMode as GuiMode) || "browser",
         transport: "stdio",
         headers: options.header,
       };
@@ -367,6 +393,7 @@ function parseArgs(): Args {
     args,
     envArgs: options.e || {},
     cli: options.cli || false,
+    guiMode: (options.guiMode as GuiMode) || "browser",
     transport: transport as "stdio" | "sse" | "streamable-http" | undefined,
     serverUrl: options.serverUrl,
     headers: options.header,
