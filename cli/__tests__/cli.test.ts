@@ -61,6 +61,60 @@ describe("CLI Tests", () => {
     });
   });
 
+  describe("GUI Mode Option", () => {
+    it("should accept browser GUI mode", async () => {
+      const { command, args } = getTestMcpServerCommand();
+      const result = await runCli([
+        "--gui-mode",
+        "browser",
+        command,
+        ...args,
+        "--cli",
+        "--method",
+        "tools/list",
+      ]);
+
+      expectCliSuccess(result);
+      const json = expectValidJson(result);
+      expect(json).toHaveProperty("tools");
+      expect(Array.isArray(json.tools)).toBe(true);
+    });
+
+    it("should accept macos-app GUI mode", async () => {
+      const { command, args } = getTestMcpServerCommand();
+      const result = await runCli([
+        "--gui-mode",
+        "macos-app",
+        command,
+        ...args,
+        "--cli",
+        "--method",
+        "tools/list",
+      ]);
+
+      expectCliSuccess(result);
+      const json = expectValidJson(result);
+      expect(json).toHaveProperty("tools");
+      expect(Array.isArray(json.tools)).toBe(true);
+    });
+
+    it("should reject invalid GUI mode", async () => {
+      const result = await runCli([
+        "--gui-mode",
+        "invalid-mode",
+        NO_SERVER_SENTINEL,
+        "--cli",
+        "--method",
+        "tools/list",
+      ]);
+
+      expectCliFailure(result);
+      expect(result.output).toContain(
+        'Invalid GUI mode: invalid-mode. Use "browser" or "macos-app".',
+      );
+    });
+  });
+
   describe("Environment Variables", () => {
     it("should accept environment variables", async () => {
       const { command, args } = getTestMcpServerCommand();

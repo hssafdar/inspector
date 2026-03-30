@@ -13,6 +13,31 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms, true));
 }
 
+function openInspectorGui(url, guiMode) {
+  if (guiMode === "macos-app") {
+    if (process.platform === "darwin") {
+      console.log("🍎 Opening macOS app window...");
+      spawnPromise("open", ["-a", "Safari", url], {
+        env: process.env,
+        echoOutput: false,
+      }).catch(() => {
+        console.warn(
+          "⚠️  Failed to open macOS app window. Opening browser instead.",
+        );
+        console.log("🌐 Opening browser...");
+        open(url);
+      });
+      return;
+    }
+    console.warn(
+      "⚠️  --gui-mode macos-app is only supported on macOS. Opening browser instead.",
+    );
+  }
+
+  console.log("🌐 Opening browser...");
+  open(url);
+}
+
 function getClientUrl(port, authDisabled, sessionToken, serverPort) {
   const host = process.env.HOST || "localhost";
   const baseUrl = `http://${host}:${port}`;
@@ -169,8 +194,7 @@ async function startDevClient(clientOptions) {
   setTimeout(() => {
     console.log(`\n🚀 MCP Inspector is up and running at:\n   ${url}\n`);
     if (process.env.MCP_AUTO_OPEN_ENABLED !== "false") {
-      console.log("🌐 Opening browser...");
-      open(url);
+      openInspectorGui(url, process.env.MCP_GUI_MODE || "browser");
     }
   }, 3000);
 
@@ -217,6 +241,7 @@ async function startProdClient(clientOptions) {
       ...process.env,
       CLIENT_PORT,
       INSPECTOR_URL: url,
+      MCP_GUI_MODE: process.env.MCP_GUI_MODE || "browser",
     },
     signal: abort.signal,
     echoOutput: true,
@@ -233,6 +258,7 @@ async function main() {
   let isDev = false;
   let transport = null;
   let serverUrl = null;
+  let guiMode = "browser";
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -249,6 +275,11 @@ async function main() {
 
     if (parsingFlags && arg === "--transport" && i + 1 < args.length) {
       transport = args[++i];
+      continue;
+    }
+
+    if (parsingFlags && arg === "--gui-mode" && i + 1 < args.length) {
+      guiMode = args[++i];
       continue;
     }
 
@@ -277,6 +308,7 @@ async function main() {
 
   const CLIENT_PORT = process.env.CLIENT_PORT ?? "6274";
   const SERVER_PORT = process.env.SERVER_PORT ?? DEFAULT_MCP_PROXY_LISTEN_PORT;
+  process.env.MCP_GUI_MODE = guiMode;
 
   console.log(
     isDev
